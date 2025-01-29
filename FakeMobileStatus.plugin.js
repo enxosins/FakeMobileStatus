@@ -1,71 +1,58 @@
+// iPhoneEmulator.plugin.js
 /**
- * @name FakeMobileStatus
- * @description Shows the mobile icon while using Discord on PC, even in calls.
- * @version 1.1.1
+ * @name iPhoneEmulator
+ * @description Emulate being on an iPhone in Discord calls
+ * @version 1.0.0
  * @author YourName
- * @source https://github.com/enxosins/FakeMobileStatus
- * @updateUrl https://raw.githubusercontent.com/enxosins/FakeMobileStatus/main/FakeMobileStatus.plugin.js
  */
 
-const { Patcher, Logger } = BdApi;
+module.exports = (() => {
+    const config = {
+        info: {
+            name: "iPhoneEmulator",
+            authors: [
+                {
+                    name: "YourName",
+                    discord_id: "YourDiscordID",
+                    github: "YourGitHubProfile",
+                },
+            ],
+            version: "1.0.0",
+            description: "Emulate being on an iPhone in Discord calls",
+            changelog: [
+                {
+                    title: "Initial Release",
+                    items: ["Emulates iPhone in calls"],
+                },
+            ],
+        },
+        main: "iPhoneEmulator.plugin.js",
+    };
 
-module.exports = class FakeMobileStatus {
-    start() {
-        this.patchStatus();
-        this.keepMobileActive();
-    }
-
-    stop() {
-        this.unpatchStatus();
-        clearInterval(this.interval);
-    }
-
-    patchStatus() {
-        const statusModule = BdApi.findModuleByProps("setLocalPresence");
-        if (!statusModule) {
-            Logger.error("Failed to find status module.");
-            return;
-        }
-
-        Patcher.before(statusModule, "setLocalPresence", (_, args) => {
-            if (args[0]) {
-                args[0].clientStatus = {
-                    desktop: "online", // Keep PC controls
-                    mobile: "online"   // Show mobile icon
-                };
-            }
-        });
-
-        Logger.log("FakeMobileStatus activated.");
-    }
-
-    keepMobileActive() {
-        const statusModule = BdApi.findModuleByProps("setLocalPresence");
-        if (!statusModule) {
-            Logger.error("Failed to find status module on retry.");
-            return;
-        }
-
-        // Reapply mobile status every second to prevent Discord from overriding
-        this.interval = setInterval(() => {
-            try {
-                statusModule.setLocalPresence({
-                    status: "online",
-                    clientStatus: {
-                        desktop: "online", // Keep PC controls
-                        mobile: "online"   // Keep mobile icon visible
+    return class {
+        start() {
+            // Create a MutationObserver to watch for changes in the call icon
+            const observer = new MutationObserver(() => {
+                const callIcons = document.querySelectorAll('.call-icon'); // Select call icons
+                callIcons.forEach((icon) => {
+                    // Check if the icon already has the 'mobile' class
+                    if (!icon.classList.contains('mobile')) {
+                        icon.classList.add('mobile'); // Add mobile class
                     }
                 });
-                Logger.log("Forced mobile status.");
-            } catch (error) {
-                Logger.error("Failed to set presence:", error);
-            }
-        }, 1000);
-    }
+            });
 
-    unpatchStatus() {
-        Patcher.unpatchAll();
-        clearInterval(this.interval);
-        Logger.log("FakeMobileStatus deactivated.");
-    }
-};
+            // Start observing the body for changes
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true,
+            });
+            console.log("iPhone Emulator Plugin Started");
+        }
+
+        stop() {
+            console.log("iPhone Emulator Plugin Stopped");
+            // You can clean up the observer here if needed
+        }
+    };
+})();
